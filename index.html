@@ -3,14 +3,11 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="UTF-8" />
-    <title>Experiencia de RA - Modelo 3D</title>
+    <title>Experiencia de RA - Modelo 3D Anclado</title>
     
     <!-- Librerías de A-Frame y MindAR -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    
-    <!-- Opcional: descomenta la línea de abajo si tu archivo .glb tiene animaciones incluidas -->
-    <!-- <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script> -->
     
     <style>
       body {
@@ -18,10 +15,30 @@
         overflow: hidden;
       }
     </style>
+
+    <!-- Script para centrar automáticamente el pivote del modelo 3D en el centro de la imagen -->
+    <script>
+      AFRAME.registerComponent('centrar-modelo', {
+        init: function () {
+          this.el.addEventListener('model-loaded', () => {
+            const obj = this.el.getObject3D('mesh');
+            if (!obj) return;
+            const box = new THREE.Box3().setFromObject(obj);
+            const center = box.getCenter(new THREE.Vector3());
+            // Mueve la geometría interna para que su centro coincida con (0,0,0) del marcador
+            obj.position.sub(center);
+          });
+        }
+      });
+    </script>
   </head>
   <body>
+    <!-- 
+      Se ajustaron filterMinCF y filterBeta a valores estándar para eliminar el retraso ("arrastre") 
+      y que el objeto responda al instante al movimiento del celular.
+    -->
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; filterMinCF:0.0001; filterBeta: 0.001;" 
+      mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.001; filterBeta: 0.01; missTolerance: 5; warmupTolerance: 5;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -32,22 +49,23 @@
         <a-asset-item id="modelo-monstruos" src="./MONSTRUOS.glb"></a-asset-item>
       </a-assets>
 
-      <!-- Iluminación básica para que el modelo 3D no se vea negro -->
+      <!-- Iluminación -->
       <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
       <a-light type="directional" color="#ffffff" intensity="2" position="1 2 3"></a-light>
 
+      <!-- Cámara fija (MindAR controla la posición relativa del target respecto a esta cámara) -->
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <!-- targetIndex: 0 corresponde a la primera imagen procesada en targets.mind -->
-      <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Contenedor anclado a la imagen física -->
+      <a-entity id="target-container" mindar-image-target="targetIndex: 0">
         
-        <!-- Modelo 3D .glb -->
+        <!-- Modelo 3D .glb con autocentrado -->
         <a-gltf-model 
           src="#modelo-monstruos" 
-          position="0 0 0" 
+          centrar-modelo
+          position="0 0 0.1" 
           rotation="0 0 0" 
-          scale="0.5 0.5 0.5">
-          <!-- Si quieres que reproduzca animaciones del .glb, agrega animation-mixer dentro de esta etiqueta -->
+          scale="0.3 0.3 0.3">
         </a-gltf-model>
 
       </a-entity>
